@@ -1,5 +1,4 @@
 {-# OPTIONS_GHC -Wno-unrecognised-pragmas #-}
-{-# HLINT ignore "Redundant lambda" #-}
 import T2
 import Test.Hspec (Spec, describe, hspec, it, shouldBe)
 import Test.QuickCheck (quickCheck)
@@ -104,15 +103,45 @@ testsEjecicio3ParteA = describe "EJERCICIO 3.a) find" $ do
 testsEjecicio4ParteA :: Spec
 testsEjecicio4ParteA = describe "EJERCICIO 4.a) nFirstEven" $ do
   it "pruebas para nFirstEven" $ do
-    let result = [Zero, Succ Zero, Succ (Succ Zero), Succ (Succ (Succ Zero))]
-    nFirstEven (Succ (Succ (Succ Zero))) `shouldBe` result
+    let cero = Zero
+    let tres = Succ dos
+    let cuatro = Succ tres
+    let cinco = Succ cuatro
+    let seis = Succ cinco
+    let siete = Succ seis
+    let ocho = Succ siete
+    let nueve = Succ ocho
+    let diez = Succ nueve
+    nFirstEven cero `shouldBe` []
+    nFirstEven uno `shouldBe` [cero]
+    nFirstEven dos `shouldBe` [cero, dos]
+    nFirstEven tres `shouldBe` [cero, dos, cuatro]
+    nFirstEven cuatro `shouldBe` [cero, dos, cuatro, seis]
+    nFirstEven cinco `shouldBe` [cero, dos, cuatro, seis, ocho]
+    nFirstEven seis `shouldBe` [cero, dos, cuatro, seis, ocho, diez]
 
 -- Parte (b): fun
 testsEjecicio4ParteB :: Spec
 testsEjecicio4ParteB = describe "EJERCICIO 4.b) fun" $ do
   it "pruebas para fun" $ do
-    let expected = add (mult dos dos) (add uno uno)
-    fun (Succ (Succ Zero)) `shouldBe` expected
+    let cero = Zero
+    let tres = Succ dos
+    let cuatro = Succ tres
+    let cinco = Succ cuatro
+    let seis = Succ cinco
+    let siete = Succ seis
+    let ocho = Succ siete
+    let nueve = Succ ocho
+    let diez = Succ nueve
+    let trece= Succ(Succ(Succ diez))
+    let catorce = Succ trece
+    fun cero `shouldBe` dos
+    fun uno `shouldBe` tres
+    fun dos `shouldBe` cuatro
+    fun tres `shouldBe` trece
+    fun cuatro `shouldBe`ocho
+    fun seis `shouldBe` catorce
+    
 
 
 {-------------------------------------------}

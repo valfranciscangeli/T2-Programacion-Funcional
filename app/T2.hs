@@ -88,7 +88,7 @@ foldF ::
   (a -> a) ->               -- funcion para Not
   (a -> a -> a) ->          -- funcion para And
   (a -> a -> a) ->          -- funcion para Imply
-  Formula -> a              
+  Formula -> a
 foldF fConst fVar fNot fAnd fImply formula = case formula of
   Const p -> fConst p
   Var p -> fVar p
@@ -98,9 +98,9 @@ foldF fConst fVar fNot fAnd fImply formula = case formula of
 
 -- Parte (b)
 foldEvalF :: -- se cambio el nombre de fold a foldEvalF para evitar colision de nombre
-  Formula -> Valuation -> Bool 
+  Formula -> Valuation -> Bool
 foldEvalF formula s =
-  foldF 
+  foldF
     id
     ( \x -> case find x s of
         Right val -> val
@@ -210,22 +210,24 @@ uno = Succ Zero
 dos :: Nat
 dos = Succ uno
 
--- funcion aux para obtener una lista de los primeros n numeros pares
+-- funcion aux para obtener una lista de los primeros k numeros pares
 nFirstEven :: Nat -> [Nat]
-nFirstEven = genList Zero
+nFirstEven Zero = []
+nFirstEven k = generateEvens k Zero
   where
-    genList :: Nat -> Nat -> [Nat]
-    genList _ Zero = []
-    genList count (Succ k) = mult dos count : genList (Succ count) k
+    generateEvens :: Nat -> Nat -> [Nat]
+    generateEvens Zero _ = []
+    generateEvens (Succ n) count = mult dos count : generateEvens n (Succ count)
+
 
 -- funcion f cambia de nombre a fun para evitar colisiones de nombre
-fun :: Nat -> Nat 
+fun :: Nat -> Nat
 fun n = foldNat funN dos n
   where
     funN :: Nat -> Nat
-    funN k
-      | k `elem` nFirstEven n = add k (fun (subs n dos))
-      | otherwise = add (mult k k) (fun (subs n uno))
+    funN k = if k `elem` nFirstEven n
+      then add k (fun (subs n dos))
+      else add (mult k k) (fun (subs n uno))
 
 {-------------------------------------------}
 {--------------  EJERCICIO 5  --------------}
