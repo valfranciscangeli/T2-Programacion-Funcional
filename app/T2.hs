@@ -65,7 +65,7 @@ testFrac2ConFrac :: Integer -> Integer -> Bool
 -- se modifico el tipo para correr el test en el archivo main
 testFrac2ConFrac m n
   | m < 0 = True -- caso no contemplado en la propiedad
-  | n <= 0 = True -- caso no contemplado en la propiedad
+  | n <= 0 = True -- caso no contemplado en la propiedad (y division por 0)
   | otherwise = evalCF (frac2ConFrac (m, n)) == (m, n)
 
 {-------------------------------------------}
@@ -83,13 +83,12 @@ data Formula
 
 -- Parte (a)
 foldF ::
-  (Bool -> a) -> -- funcion para Const
-  (Variable -> a) -> -- Funcion para Var
-  (a -> a) -> -- Funcion para Not
-  (a -> a -> a) -> -- Funcion para And
-  (a -> a -> a) -> -- Funcion para Imply
-  Formula ->
-  a -- Finalmente la formula y retorna algo tipo a
+  (Bool -> a) ->            -- funcion para Const
+  (Variable -> a) ->        -- funcion para Var
+  (a -> a) ->               -- funcion para Not
+  (a -> a -> a) ->          -- funcion para And
+  (a -> a -> a) ->          -- funcion para Imply
+  Formula -> a              
 foldF fConst fVar fNot fAnd fImply formula = case formula of
   Const p -> fConst p
   Var p -> fVar p
@@ -99,11 +98,9 @@ foldF fConst fVar fNot fAnd fImply formula = case formula of
 
 -- Parte (b)
 foldEvalF :: -- se cambio el nombre de fold a foldEvalF para evitar colision de nombre
-  Formula ->
-  Valuation ->
-  Bool -- retorna Bool
+  Formula -> Valuation -> Bool 
 foldEvalF formula s =
-  foldF
+  foldF 
     id
     ( \x -> case find x s of
         Right val -> val
@@ -149,8 +146,8 @@ isTaut formula =
   where
     valuations = allVals formula
     trueValues = map (foldEvalF formula) valuations
-
     -- eval1: entrega la primera valuacion que haga la formula False
+    eval1 :: Formula -> [Valuation] -> Maybe Valuation
     eval1 _ [] = Nothing
     eval1 form (val : vals)
       | not (foldEvalF form val) = Just val
@@ -178,9 +175,9 @@ find key assoc = case [v | (k, v) <- assoc, k == key] of
   _ -> Left ("Multiple values for key " ++ show key)
 
 -- Parte (b)
--- Eq k: Se debe declarar que k es de tipo Eq para comparar igualdad con la llave buscada.
--- Show k: Se necesita que k cumpla este tipo para poder ser mostrado en pantalla con el mensaje de error.
--- Eq v: Se necesita comparar igualdad también en v para revisar si existen valores duplicados (iguales) asociados a la misma clave k.
+  -- Eq k: Se debe declarar que k es de tipo Eq para comparar igualdad con la llave buscada.
+  -- Show k: Se necesita que k cumpla este tipo para poder ser mostrado en pantalla con el mensaje de error.
+  -- Eq v: Se necesita comparar igualdad también en v para revisar si existen valores duplicados (iguales) asociados a la misma clave k.
 
 {-------------------------------------------}
 {--------------  EJERCICIO 4  --------------}
@@ -202,7 +199,7 @@ foldNat f v (Succ n) = f (foldNat f v n)
 
 -- se agrega funcion para restar
 subs :: Nat -> Nat -> Nat
-subs Zero _ = Zero
+subs Zero _ = Zero    -- restar cualquier cosa a 0 trunca en 0 por ser conjunto N
 subs n Zero = n
 subs (Succ n) (Succ m) = subs n m
 
@@ -221,7 +218,8 @@ nFirstEven = genList Zero
     genList _ Zero = []
     genList count (Succ k) = mult dos count : genList (Succ count) k
 
-fun :: Nat -> Nat
+-- funcion f cambia de nombre a fun para evitar colisiones de nombre
+fun :: Nat -> Nat 
 fun n = foldNat funN dos n
   where
     funN :: Nat -> Nat
@@ -255,7 +253,7 @@ foldBT f g (InNode t1 v t2) = f (foldBT f g t1) v (foldBT f g t2)
   PROBAR QUE: 
   h . foldBT f g = foldBT f’ g’
 
-  -> Se tiene unarbol binario t
+  -> Se tiene un arbol binario t
 
   CASO BASE:
     -> t = Leaf v
@@ -296,4 +294,130 @@ foldBT f g (InNode t1 v t2) = f (foldBT f g t1) v (foldBT f g t2)
 
 -- Parte (b)
 
+--mirrorBT :: BinTree a -> BinTree a
+--mirrorBT = foldBT (\ r1 v r2 -> InNode r2 v r1 ) Leaf
+
+flattenBT :: BinTree a -> [ a ]
+flattenBT = foldBT (\ r1 v r2 -> r1 ++ [ v ] ++ r2 ) ( : [ ] )
+
+sizeBT :: BinTree a -> Int
+sizeBT = foldBT (\ r1 _ r2 -> r1 + 1 + r2 ) ( const 1)
+
+{- 
+Por parte a) se tiene que:
+  h(foldBT f g t) = foldBT f' g' t
+  para un BT t.
+
+Probar que
+  length.flattenBT = sizeBT
+
+HINT: Asumir que 
+  length (xs ++ ys) = length xs + lenght ys
+
+
+CASO BASE:
+  -> t = Leaf v
+
+  probar: (sin la notacion .)
+  length (flattenBT (Leaf v)) = sizeBT (Leaf v)
+
+  entonces, izquierda:
+    length (flattenBT (Leaf v))
+    =length ([v])               / -> flattenBT (foldBT.1)
+    = 1                         / -> length.2
+
+  luego, derecha:
+    sizeBT (Leaf v)
+    = const 1                   / -> sizeBT (foldBT.1)
+    = 1
+
+  ambos lados son iguales, por lo que se demuestra para caso base.
+
+CASO INDUCTIVO:
+
+  HI: la propiedad se cumple para los subarboles t1 y t2
+    -> t = InNode t1 v t2
+
+  probar: (sin la notacion .)
+  length (flattenBT (InNode t1 v t2)) = sizeBT (InNode t1 v t2)
+
+  entonces, izquierda:
+    length (flattenBT (InNode t1 v t2))
+    = length ((flattenBT t1) ++ [v] ++ (flattenBT t2))    / -> flattenBT (foldBT.2)
+    = length(flattenBT t1) + length [v] + length(flattenBT t2) /-> Hint
+    = sizeBT t1 + length [v] + sizeBT t2 /-> (a) y HI para cada subarbol
+    = sizeBT t1 + 1 + sizeBT t2 / -> length.2
+  
+  luego, derecha:
+    sizeBT (InNode t1 v t2)
+    = sizeBT t1 + 1 + sizeBT t2 / -> sizeBT (fold.2)
+
+  ambos lados son iguales, por lo que se demuestra para caso inductivo.
+
+
+Finalmente, se demuestra para caso base y caso inductivo. Por lo tanto, la propiedad se cumple para todo BT.
+
+-}
+
 -- Parte (c)
+
+mirrorBT :: BinTree a -> BinTree a
+mirrorBT = foldBT (\ r1 v r2 -> InNode r2 v r1 ) Leaf
+
+idBT :: BinTree a -> BinTree a
+idBT = foldBT InNode Leaf
+
+{-
+
+Por parte a) se tiene que:
+  h(foldBT f g t) = foldBT f' g' t
+  para un BT t.
+
+Probar que
+  mirrorBt.mirrorBT = idBT
+
+CASO BASE:
+  -> t = Leaf v
+
+  probar: (sin la notacion .)
+  mirrorBT (mirrorBt (Leaf v)) = idBT (Leaf v)
+
+  entonces, izquierda:
+    mirrorBT (mirrorBt (Leaf v))
+    = mirrorBt (Leaf v)                   / -> mirrorBT (fold.1)
+    = Leaf v                              / -> mirrorBT (fold.1)
+
+
+  luego, derecha:
+    idBT (Leaf v)
+    = Leaf v                              / -> idBT (fold.1)
+
+  ambos lados son iguales, por lo que se demuestra para caso base.
+
+
+CASO INDUCTIVO:
+  HI: la propiedad se cumple para los subarboles t1 y t2
+    -> t = InNode t1 v t2
+
+  probar: (sin la notacion .)
+  mirrorBT (mirrorBt (InNode t1 v t2)) = idBT (InNode t1 v t2)
+
+  entonces, izquierda:
+    mirrorBT (mirrorBt (InNode t1 v t2))
+    = mirrorBT (InNode (mirrorBT t2) v (mirrorBT t1))  / -> mirrorBt (fold.2)
+    = InNode (mirrorBt(mirrorBT t1) v mirrorBt(mirrorBT t2) )    / -> mirrorBt (fold.2)
+    = InNode idBT(t1) v idBT(t2) / (a) y HI para cada sub arbol
+    = InNode t1 v t2 / -> idBT (foldBT.2)
+
+  luego, derecha:
+    idBT (InNode t1 v t2)
+    = InNode t1 v t2   / -> idBT (fold.2)
+
+  ambos lados son iguales, por lo que se demuestra para caso inductivo.
+  
+Finalmente, se demuestra para caso base y caso inductivo. Por lo tanto, la propiedad se cumple para todo BT.
+
+-}
+
+
+
