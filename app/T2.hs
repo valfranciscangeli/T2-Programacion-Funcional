@@ -173,7 +173,7 @@ find ::
   Assoc k v ->
   Either Error v
 find key assoc = case [v | (k, v) <- assoc, k == key] of
-  [] -> Left ( "Key " ++ show key ++ " not found")
+  [] -> Left ("Key " ++ show key ++ " not found")
   [v] -> Right v
   _ -> Left ("Multiple values for key " ++ show key)
 
@@ -221,16 +221,79 @@ nFirstEven = genList Zero
     genList _ Zero = []
     genList count (Succ k) = mult dos count : genList (Succ count) k
 
-
 fun :: Nat -> Nat
 fun n = foldNat funN dos n
   where
     funN :: Nat -> Nat
-    funN k 
+    funN k
       | k `elem` nFirstEven n = add k (fun (subs n dos))
       | otherwise = add (mult k k) (fun (subs n uno))
-
 
 {-------------------------------------------}
 {--------------  EJERCICIO 5  --------------}
 {-------------------------------------------}
+data BinTree a = Leaf a | InNode (BinTree a) a (BinTree a)
+
+foldBT :: (b -> a -> b -> b) -> (a -> b) -> (BinTree a -> b)
+foldBT _ g (Leaf v) = g v
+foldBT f g (InNode t1 v t2) = f (foldBT f g t1) v (foldBT f g t2)
+
+-- Parte (a)
+{- 
+  f:: b -> a -> b -> b
+  g:: a -> b
+  f’:: b’ -> a -> b’ -> b’
+  g':: a -> b’
+  h:: b -> b’ 
+
+  composicion de funciones -> (f . g) x = f (g x)
+
+  las funciones cumplen que:
+  1. h (g v) = g’ v
+  2. h (f x1 v x2) = f’ (h x1) v (h x2)
+
+  PROBAR QUE: 
+  h . foldBT f g = foldBT f’ g’
+
+  -> Se tiene unarbol binario t
+
+  CASO BASE:
+    -> t = Leaf v
+
+    probar: (sin la notacion .)
+    h(foldBT f g (Leaf v)) = foldBT f' g' (Leaf v)
+
+    entonces, izquierda:
+      h(foldBT f g (Leaf v)) 
+      = h(g(v))               / -> foldBT.1
+      = g' v                  / condicion 1) h (g v) = g’ v
+
+
+    luego, derecha:
+      foldBT f' g' (Leaf v)
+      = g' v !!     / -> foldBT.1
+
+    por lo que se demuestra para caso base.
+
+  CASO INDUCTIVO:
+    HI: la propiedad se cumple para los subarboles t1 y t2
+    -> t = InNode t1 v t2
+
+    probar: (sin la notacion .)
+    h(foldBT f g (InNode t1 v t2)) = foldBT f' g' (InNode t1 v t2)
+
+    entonces, izquierda:
+      h(foldBT f g (InNode t1 v t2))
+      = h(f (foldBT f g t1) v (foldBT f g t2))        / -> foldBT.2
+      = f' (h(foldBT f g t1) v h(foldBT f g t2))      / condicion 2) h (f x1 v x2) = f’ (h x1) v (h x2)
+      = f'((foldBT f' g' t1) v (foldBT f' g' t2))     / Por HI, h(foldBT f g t1)= foldBT f' g' t1, lo mismo para t2
+      = foldBT f' g' (InNode t1 v t2)                 / <- foldBT.2
+
+      por lo que queda igual que la equivalencia derecha.
+
+  Finalmente, se demuestra para caso base y caso inductivo. Por lo tanto, la propiedad se cumple para todo BT.
+  -}
+
+-- Parte (b)
+
+-- Parte (c)
