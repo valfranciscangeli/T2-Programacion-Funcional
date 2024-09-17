@@ -28,7 +28,7 @@ degree (Simple _) = 0
 degree (Compound _ _ frac) = 1 + degree frac
 
 -- Parte d)
--- por las funciones desarrolladar previamente se puede notar un comportamiendo
+-- por las funciones desarrolladas previamente se puede notar un comportamiento
 -- diferente cuando se encuentra con un ContFraction Simple o Compound
 -- ( se aplican diferentes funciones)
 foldCF :: ContFraction -> (Integer -> a) -> (Integer -> Integer -> a -> a) -> a
@@ -59,7 +59,7 @@ frac2ConFrac :: (Integer, Integer) -> ContFraction
 frac2ConFrac (0, _) = Simple 0
 frac2ConFrac (_,0) = error "denominador  igual a 0"
 frac2ConFrac (val, 1) = Simple val
-frac2ConFrac (num, den) = Compound (num `div` den) 1      (frac2ConFrac (den, num `mod` den))
+frac2ConFrac (num, den) = Compound (num `div` den) 1 (frac2ConFrac (den, num `mod` den))
 
 -- parte g)
 
@@ -196,6 +196,7 @@ mult :: Nat -> Nat -> Nat
 mult Zero _ = Zero
 mult (Succ n) m = add m (mult n m)
 
+-- foldNat de las diapos de clases
 foldNat :: (b -> b) -> b -> Nat -> b
 foldNat _ v Zero= v
 foldNat fn v (Succ n) = fn (foldNat fn v n)
@@ -226,16 +227,15 @@ esPar (Succ (Succ n)) = esPar n
 f Zero = dos -- f(0) = 2
 f n = foldNat aux dos n 
   where
-    aux:: Nat-> Nat -> Nat
+    aux:: Nat-> Nat 
     aux v 
       | esPar v = add v aux(subs v dos)  -- n + f(n - 2)
       | otherwise  = add (mult v v) aux(subs v uno)  -- n^2 + f(n - 1) -}
 
--- f sin fold 
+-- f sin foldNat
 -- finalmente no pude utilizar fold para resolver la funcion
 -- esto porque necesitaba aplicar la funcion aux a dos valores, pero foldNat
 -- requiere una funcion unaria (es la definicion que se vio en clases)
--- si es que si se puede, lo intente todo este fin de semana y no lo logre
 f :: Nat -> Nat
 f Zero = dos -- f(0) = 2
 f n
@@ -303,7 +303,7 @@ foldBT fn g (InNode t1 v t2) = fn (foldBT fn g t1) v (foldBT fn g t2)
       = f'((foldBT f' g' t1) v (foldBT f' g' t2))     / Por HI, h(foldBT f g t1)= foldBT f' g' t1, lo mismo para t2
       = foldBT f' g' (InNode t1 v t2)                 / <- foldBT.2
 
-      por lo que queda igual que la equivalencia derecha.
+    por lo que queda igual que la equivalencia derecha.
 
   Finalmente, se demuestra para caso base y caso inductivo. Por lo tanto, la propiedad se cumple para todo BT.
   -}
