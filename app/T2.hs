@@ -65,7 +65,7 @@ frac2ConFrac (num, den) = Compound (num `div` den) 1 (frac2ConFrac (den, num `mo
 
 testFrac2ConFrac :: Integer -> Integer -> Bool
 testFrac2ConFrac m n
-  | m < 0 || n <= 0 = True -- casos no definidos
+  | m < 0 || n <= 0 = False -- casos no definidos
   | otherwise = (num1 * den2) == (den1 * num2)
     where
       (num1, den1)= evalCF (frac2ConFrac (m, n))

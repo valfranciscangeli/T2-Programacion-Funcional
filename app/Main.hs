@@ -130,8 +130,6 @@ testsEjecicio3ParteA = describe "EJERCICIO 3.a) find" $ do
     find 'x' [('x', True), ('x', False)] `shouldBe` Left "Multiple values for key 'x'"
 
 -- Pruebas para EJERCICIO 4 =============================
-
--- Parte (a): nFirstEven
 testsEjecicio4 :: Spec
 testsEjecicio4 = describe "EJERCICIO 4)" $ do
   let cero = Zero
