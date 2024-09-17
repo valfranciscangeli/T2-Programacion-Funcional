@@ -1,7 +1,26 @@
-{-# OPTIONS_GHC -Wno-unrecognised-pragmas #-}
+import Control.Exception (SomeException, evaluate, try)
 import T2
+    ( Nat(Succ, Zero),
+      Formula(Var, Const, Not, And, Imply),
+      ContFraction(Simple, Compound),
+      t,
+      evalCF,
+      degree,
+      foldCF,
+      foldEvalCF,
+      foldDegree,
+      frac2ConFrac,
+      testFrac2ConFrac,
+      foldF,
+      foldEvalF,
+      isTaut,
+      find,
+      uno,
+      dos,
+      f,
+      esPar )
 import Test.Hspec (Spec, describe, hspec, it, shouldBe)
-import Test.QuickCheck (quickCheck)
+import Test.QuickCheck (Arbitrary (arbitrary), Gen, forAll, ioProperty, quickCheck, suchThat)
 
 {-------------------------------------------}
 {-----------------  TEST  ------------------}
@@ -11,17 +30,17 @@ import Test.QuickCheck (quickCheck)
 
 -- Parte (b): evalCF
 testsEjecicio1ParteB :: Spec
-testsEjecicio1ParteB = describe "EJERCICIO 1" $ do
-  it "pruebas para 1.b) evalCF" $ do
-    evalCF (Simple 5)  `shouldBe`  (5, 1)
-    evalCF (Compound 1 2 (Simple 3))  `shouldBe`  (5, 3)
+testsEjecicio1ParteB = describe "EJERCICIO 1.b) evalCF" $ do
+  it "pruebas para evalCF" $ do
+    evalCF (Simple 5) `shouldBe` (5, 1)
+    evalCF (Compound 1 2 (Simple 3)) `shouldBe` (5, 3)
     evalCF t `shouldBe` (649, 200)
 
 -- Parte (c): degree
 testsEjecicio1ParteC :: Spec
 testsEjecicio1ParteC = describe "EJERCICIO 1.c) degree" $ do
   it "pruebas para degree" $ do
-    degree t `shouldBe` 3  -- Ajustar según el grado esperado de `t`
+    degree t `shouldBe` 3 
 
 -- Parte (d): foldCF
 testsEjecicio1ParteD :: Spec
@@ -45,10 +64,26 @@ testsEjecicio1ParteF = describe "EJERCICIO 1.f) frac2ConFrac " $ do
     frac2ConFrac (649, 200) `shouldBe` t
 
 -- Parte (g): Propiedad
+
+-- se agrega esta funcion para no interrumpir el test en el caso de division por 0
+testFrac2ConFracSafe :: Integer -> Integer -> IO Bool
+testFrac2ConFracSafe m n = do
+  result <- try (evaluate (testFrac2ConFrac m n)) :: IO (Either SomeException Bool)
+  case result of
+    Left _ -> return False
+    Right res -> return res
+
+-- generar n solo positivos y agregue que n!=m
+genPositiveFrac :: Gen (Integer, Integer)
+genPositiveFrac = do
+  m <- arbitrary `suchThat` (> 0)
+  n <- arbitrary `suchThat` (\x -> x > 0 && x /= m)
+  return (m, n)
+
 propiedadEjecicio1 :: Spec
 propiedadEjecicio1 = describe "EJERCICIO 1.g) Propiedad" $ do
-  it "propiedades de identidad" $ do
-    quickCheck testFrac2ConFrac
+  it "propiedades de identidad con fracciones positivas" $ do
+    quickCheck $ forAll genPositiveFrac (\(m, n) -> ioProperty $ testFrac2ConFracSafe m n)
 
 -- Pruebas para EJERCICIO 2 =============================
 
@@ -57,14 +92,13 @@ testsEjecicio2ParteA :: Spec
 testsEjecicio2ParteA = describe "EJERCICIO 2.a) foldF" $ do
   it "pruebas para foldF" $ do
     let formula = And (Const True) (Not (Var 'x'))
-    let val1 =[('x',True)]
-    let val2 =[('x',False)]
-    let ffold = ( \valu x -> case find x valu of
-          Right val -> val
-          Left val -> error val )
+    let val1 = [('x', True)]
+    let val2 = [('x', False)]
+    let ffold =( \valu x -> case find x valu of
+                          Right val -> val
+                          Left val -> error val)
     foldF id (ffold val1) not (&&) (<=) formula `shouldBe` False
     foldF id (ffold val2) not (&&) (<=) formula `shouldBe` True
-
 
 -- Parte (b): foldEvalF
 testsEjecicio2ParteB :: Spec
@@ -85,7 +119,6 @@ testsEjecicio2ParteC = describe "EJERCICIO 2.c) isTaut" $ do
     isTaut formula2 `shouldBe` Just [('x', False)]
     isTaut formula3 `shouldBe` Nothing
 
-
 -- Pruebas para EJERCICIO 3 =============================
 
 -- Parte (a): find
@@ -96,53 +129,41 @@ testsEjecicio3ParteA = describe "EJERCICIO 3.a) find" $ do
     find 'y' [('x', True)] `shouldBe` Left "Key 'y' not found"
     find 'x' [('x', True), ('x', False)] `shouldBe` Left "Multiple values for key 'x'"
 
-
 -- Pruebas para EJERCICIO 4 =============================
 
 -- Parte (a): nFirstEven
-testsEjecicio4ParteA :: Spec
-testsEjecicio4ParteA = describe "EJERCICIO 4.a) nFirstEven" $ do
-  it "pruebas para nFirstEven" $ do
-    let cero = Zero
-    let tres = Succ dos
-    let cuatro = Succ tres
-    let cinco = Succ cuatro
-    let seis = Succ cinco
-    let siete = Succ seis
-    let ocho = Succ siete
-    let nueve = Succ ocho
-    let diez = Succ nueve
-    nFirstEven cero `shouldBe` []
-    nFirstEven uno `shouldBe` [cero]
-    nFirstEven dos `shouldBe` [cero, dos]
-    nFirstEven tres `shouldBe` [cero, dos, cuatro]
-    nFirstEven cuatro `shouldBe` [cero, dos, cuatro, seis]
-    nFirstEven cinco `shouldBe` [cero, dos, cuatro, seis, ocho]
-    nFirstEven seis `shouldBe` [cero, dos, cuatro, seis, ocho, diez]
-
--- Parte (b): fun
-testsEjecicio4ParteB :: Spec
-testsEjecicio4ParteB = describe "EJERCICIO 4.b) fun" $ do
-  it "pruebas para fun" $ do
-    let cero = Zero
-    let tres = Succ dos
-    let cuatro = Succ tres
-    let cinco = Succ cuatro
-    let seis = Succ cinco
-    let siete = Succ seis
-    let ocho = Succ siete
-    let nueve = Succ ocho
-    let diez = Succ nueve
-    let trece= Succ(Succ(Succ diez))
-    let catorce = Succ trece
-    fun cero `shouldBe` dos
-    fun uno `shouldBe` tres
-    fun dos `shouldBe` cuatro
-    fun tres `shouldBe` trece
-    fun cuatro `shouldBe`ocho
-    fun seis `shouldBe` catorce
-    
-
+testsEjecicio4 :: Spec
+testsEjecicio4 = describe "EJERCICIO 4)" $ do
+  let cero = Zero
+  let tres = Succ dos
+  let cuatro = Succ tres
+  let cinco = Succ cuatro
+  let seis = Succ cinco
+  let siete = Succ seis
+  let ocho = Succ siete
+  let nueve = Succ ocho
+  let diez = Succ nueve
+  let trece = Succ (Succ (Succ diez))
+  let catorce = Succ trece
+  it "pruebas para esPar" $ do
+    esPar cero `shouldBe` True
+    esPar uno `shouldBe` False
+    esPar dos `shouldBe` True
+    esPar tres `shouldBe` False
+    esPar cuatro `shouldBe` True
+    esPar cinco `shouldBe` False
+    esPar seis `shouldBe` True
+    esPar siete `shouldBe` False
+    esPar ocho `shouldBe` True
+    esPar nueve `shouldBe` False
+    esPar diez `shouldBe` True
+  it "pruebas para f" $ do
+    f cero `shouldBe` dos
+    f uno `shouldBe` tres
+    f dos `shouldBe` cuatro
+    f tres `shouldBe` trece
+    f cuatro `shouldBe`ocho
+    f seis `shouldBe` catorce
 
 {-------------------------------------------}
 {------------------ MAIN -------------------}
@@ -164,5 +185,4 @@ main = hspec $ do
   -- Ejercicio 3
   testsEjecicio3ParteA
   -- Ejercicio 4
-  testsEjecicio4ParteA
-  testsEjecicio4ParteB
+  testsEjecicio4

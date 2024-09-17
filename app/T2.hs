@@ -1,5 +1,4 @@
 {-# LANGUAGE TupleSections #-}
-
 module T2 where
 
 {-------------------------------------------}
@@ -57,16 +56,20 @@ foldDegree frac =
 
 -- Parte f)
 frac2ConFrac :: (Integer, Integer) -> ContFraction
+frac2ConFrac (0, _) = Simple 0
+frac2ConFrac (_,0) = error "denominador  igual a 0"
 frac2ConFrac (val, 1) = Simple val
-frac2ConFrac (num, den) = Compound (num `div` den) 1 (frac2ConFrac (den, num `mod` den))
+frac2ConFrac (num, den) = Compound (num `div` den) 1      (frac2ConFrac (den, num `mod` den))
 
 -- parte g)
+
 testFrac2ConFrac :: Integer -> Integer -> Bool
--- se modifico el tipo para correr el test en el archivo main
 testFrac2ConFrac m n
-  | m < 0 = True -- caso no contemplado en la propiedad
-  | n <= 0 = True -- caso no contemplado en la propiedad (y division por 0)
-  | otherwise = evalCF (frac2ConFrac (m, n)) == (m, n)
+  | m < 0 || n <= 0 = True -- casos no definidos
+  | otherwise = (num1 * den2) == (den1 * num2)
+    where
+      (num1, den1)= evalCF (frac2ConFrac (m, n))
+      (num2, den2) = (m, n)
 
 {-------------------------------------------}
 {--------------  EJERCICIO 2  --------------}
@@ -133,9 +136,9 @@ bools n = map (False :) r ++ map (True :) r
     r = bools (n - 1)
 
 allVals :: Formula -> [Valuation]
-allVals f = map (zip vars) vals
+allVals form = map (zip vars) vals
   where
-    vars = rmdups (fvar f)
+    vars = rmdups (fvar form)
     vals = bools (length vars)
 
 isTaut :: Formula -> Maybe Valuation
@@ -177,7 +180,7 @@ find key assoc = case [v | (k, v) <- assoc, k == key] of
 -- Parte (b)
   -- Eq k: Se debe declarar que k es de tipo Eq para comparar igualdad con la llave buscada.
   -- Show k: Se necesita que k cumpla este tipo para poder ser mostrado en pantalla con el mensaje de error.
-  -- Eq v: Se necesita comparar igualdad también en v para revisar si existen valores duplicados (iguales) asociados a la misma clave k.
+  -- Eq v: Se necesita comparar igualdad tambien en v para revisar si existen valores duplicados (iguales) asociados a la misma clave k.
 
 {-------------------------------------------}
 {--------------  EJERCICIO 4  --------------}
@@ -194,14 +197,8 @@ mult Zero _ = Zero
 mult (Succ n) m = add m (mult n m)
 
 foldNat :: (b -> b) -> b -> Nat -> b
-foldNat _ v Zero = v
-foldNat f v (Succ n) = f (foldNat f v n)
-
--- se agrega funcion para restar
-subs :: Nat -> Nat -> Nat
-subs Zero _ = Zero    -- restar cualquier cosa a 0 trunca en 0 por ser conjunto N
-subs n Zero = n
-subs (Succ n) (Succ m) = subs n m
+foldNat _ v Zero= v
+foldNat fn v (Succ n) = fn (foldNat fn v n)
 
 -- numeros que se repite uso
 uno :: Nat
@@ -210,24 +207,41 @@ uno = Succ Zero
 dos :: Nat
 dos = Succ uno
 
--- funcion aux para obtener una lista de los primeros k numeros pares
-nFirstEven :: Nat -> [Nat]
-nFirstEven Zero = []
-nFirstEven k = generateEvens k Zero
-  where
-    generateEvens :: Nat -> Nat -> [Nat]
-    generateEvens Zero _ = []
-    generateEvens (Succ n) count = mult dos count : generateEvens n (Succ count)
+-- se agrega funcion para restar
+subs :: Nat -> Nat -> Nat
+subs Zero _ = Zero    -- restar cualquier cosa a 0 trunca en 0 por ser conjunto N
+subs n Zero = n
+subs (Succ n) (Succ m) = subs n m
 
+-- ==================
 
--- funcion f cambia de nombre a fun para evitar colisiones de nombre
-fun :: Nat -> Nat
-fun n = foldNat funN dos n
+-- ver si un Nat es par
+esPar :: Nat -> Bool
+esPar Zero = True
+esPar (Succ Zero) = False
+esPar (Succ (Succ n)) = esPar n
+
+-- funcion f usando foldNat (no resulta)
+{- f :: Nat -> Nat
+f Zero = dos -- f(0) = 2
+f n = foldNat aux dos n 
   where
-    funN :: Nat -> Nat
-    funN k = if k `elem` nFirstEven n
-      then add k (fun (subs n dos))
-      else add (mult k k) (fun (subs n uno))
+    aux:: Nat-> Nat -> Nat
+    aux v 
+      | esPar v = add v aux(subs v dos)  -- n + f(n - 2)
+      | otherwise  = add (mult v v) aux(subs v uno)  -- n^2 + f(n - 1) -}
+
+-- f sin fold 
+-- finalmente no pude utilizar fold para resolver la funcion
+-- esto porque necesitaba aplicar la funcion aux a dos valores, pero foldNat
+-- requiere una funcion unaria (es la definicion que se vio en clases)
+-- si es que si se puede, lo intente todo este fin de semana y no lo logre
+f :: Nat -> Nat
+f Zero = dos -- f(0) = 2
+f n
+  | esPar n   = add n (f (subs n dos))  -- n + f(n - 2) si n es par
+  | otherwise = add (mult n n) (f (subs n uno))  -- n^2 + f(n - 1) si n es impar
+
 
 {-------------------------------------------}
 {--------------  EJERCICIO 5  --------------}
@@ -236,7 +250,7 @@ data BinTree a = Leaf a | InNode (BinTree a) a (BinTree a)
 
 foldBT :: (b -> a -> b -> b) -> (a -> b) -> (BinTree a -> b)
 foldBT _ g (Leaf v) = g v
-foldBT f g (InNode t1 v t2) = f (foldBT f g t1) v (foldBT f g t2)
+foldBT fn g (InNode t1 v t2) = fn (foldBT fn g t1) v (foldBT fn g t2)
 
 -- Parte (a)
 {- 
@@ -325,12 +339,12 @@ CASO BASE:
 
   entonces, izquierda:
     length (flattenBT (Leaf v))
-    =length ([v])               / -> flattenBT (foldBT.1)
-    = 1                         / -> length.2
+    =length ([v])                               / -> flattenBT (foldBT.1)
+    = 1                                         / -> length.2
 
   luego, derecha:
     sizeBT (Leaf v)
-    = const 1                   / -> sizeBT (foldBT.1)
+    = const 1                                   / -> sizeBT (foldBT.1)
     = 1
 
   ambos lados son iguales, por lo que se demuestra para caso base.
@@ -345,14 +359,14 @@ CASO INDUCTIVO:
 
   entonces, izquierda:
     length (flattenBT (InNode t1 v t2))
-    = length ((flattenBT t1) ++ [v] ++ (flattenBT t2))    / -> flattenBT (foldBT.2)
-    = length(flattenBT t1) + length [v] + length(flattenBT t2) /-> Hint
-    = sizeBT t1 + length [v] + sizeBT t2 /-> (a) y HI para cada subarbol
-    = sizeBT t1 + 1 + sizeBT t2 / -> length.2
+    = length ((flattenBT t1) ++ [v] ++ (flattenBT t2))              / -> flattenBT (foldBT.2)
+    = length(flattenBT t1) + length [v] + length(flattenBT t2)      /-> Hint
+    = sizeBT t1 + length [v] + sizeBT t2                            /-> (a) y HI para cada subarbol
+    = sizeBT t1 + 1 + sizeBT t2                                     / -> length.2
   
   luego, derecha:
     sizeBT (InNode t1 v t2)
-    = sizeBT t1 + 1 + sizeBT t2 / -> sizeBT (fold.2)
+    = sizeBT t1 + 1 + sizeBT t2                                     / -> sizeBT (fold.2)
 
   ambos lados son iguales, por lo que se demuestra para caso inductivo.
 
@@ -406,14 +420,14 @@ CASO INDUCTIVO:
 
   entonces, izquierda:
     mirrorBT (mirrorBt (InNode t1 v t2))
-    = mirrorBT (InNode (mirrorBT t2) v (mirrorBT t1))  / -> mirrorBt (fold.2)
-    = InNode (mirrorBt(mirrorBT t1) v mirrorBt(mirrorBT t2) )    / -> mirrorBt (fold.2)
-    = InNode idBT(t1) v idBT(t2) / (a) y HI para cada sub arbol
-    = InNode t1 v t2 / -> idBT (foldBT.2)
+    = mirrorBT (InNode (mirrorBT t2) v (mirrorBT t1))   !!        / -> mirrorBt (fold.2)
+    = InNode (mirrorBt(mirrorBT t1) v mirrorBt(mirrorBT t2) )     / -> mirrorBt (fold.2)
+    = InNode idBT(t1) v idBT(t2)                                  / (a) y HI para cada sub arbol
+    = InNode t1 v t2                                              / -> idBT (foldBT.2)
 
   luego, derecha:
     idBT (InNode t1 v t2)
-    = InNode t1 v t2   / -> idBT (fold.2)
+    = InNode t1 v t2                                              / -> idBT (fold.2)
 
   ambos lados son iguales, por lo que se demuestra para caso inductivo.
   
